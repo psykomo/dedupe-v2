@@ -1,4 +1,4 @@
-# dedupe-gemini
+# dedupe-v2
 
 A Python CLI tool for deduplicating inmate records using Splink and Google Gemini (in progress).
 
