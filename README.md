@@ -128,6 +128,18 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
       --deterministic-recall 0.7
     ```
 
+    Debug mode (small runs only):
+    ```bash
+    uv run dedupe deduplicate train --sample-size 20000 --retain-debug-columns
+    ```
+
+    Notes on `--retain-debug-columns`:
+    - Default is **off**.
+    - When off, Splink model settings use:
+      - `retain_matching_columns = false`
+      - `retain_intermediate_calculation_columns = false`
+    - This reduces memory and output size for production-scale runs.
+
     This saves model settings to `data/splink_model.json`.
 
 8.  **Run Deduplication (Incremental)**:
