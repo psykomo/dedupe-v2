@@ -16,6 +16,32 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     - **Incremental Run**: Processes new records against the full dataset with optional batch limits.
     - **Entity Resolution**: Generates unique CIF Numbers for linked clusters.
 
+## Workflow: From Source to Deduplication
+
+1.  **Extract (Source -> Staging)**:
+    - The ETL pipeline connects to your source MariaDB database.
+    - It executes a paginated query (either default or custom from `config.yml`) to fetch records.
+    - Data is normalized on-the-fly (e.g., names are standardized, titles removed).
+    - Cleaned records are loaded into a local DuckDB table `staging_identitas`.
+    - This process is resumable and tracks progress via `data/etl_state.json`.
+
+2.  **Train (Staging -> Model)**:
+    - Splink analyzes a sample of the staging data (e.g., 50k records).
+    - Using Expectation-Maximization (EM), it learns probabilistic weights for matching fields like Name, DOB, and Address.
+    - The learned model parameters are saved to `data/splink_model.json`.
+
+3.  **Deduplicate (Staging + Model -> Clusters)**:
+    - The `run` command identifies new records in `staging_identitas` (where `PROCESSED_AT` is NULL).
+    - It loads the full dataset into memory (or chunks via `--limit`).
+    - Using the trained model, it compares records to find duplicates.
+    - Linked records are grouped into clusters.
+    - Each cluster is assigned a unique `CIF_NUMBER`.
+    - Results are saved to `processed_clusters` in DuckDB.
+
+4.  **Result (Clusters -> Source)**:
+    - You can query `processed_clusters` to get the mapping of `NOMOR_INDUK` to `CIF_NUMBER`.
+    - (Future Step) Push these CIF numbers back to your production database.
+
 ## Prerequisites
 
 - [uv](https://github.com/astral-sh/uv) (for dependency management)
