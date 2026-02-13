@@ -12,9 +12,9 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     - Supports UPT filtering.
     - Supports **Custom SQL Queries** via `config.yml` (for complex JOINs and filters).
 - **Deduplication**: Record linkage and deduplication using Splink.
-    - **Training**: Unsupervised model training (EM algorithm) on your data.
-    - **Incremental Run**: Processes new records against the full dataset with optional batch limits.
-    - **Entity Resolution**: Generates unique CIF Numbers for linked clusters.
+    - **Training**: Unsupervised model training with EM, term-frequency tables, and prior match-probability estimation.
+    - **Incremental Run**: True new-vs-all processing in configurable batches (`--batch-size`) with optional run cap (`--limit`).
+    - **Entity Resolution**: Component-based CIF assignment with automatic CIF merge when new data bridges existing clusters.
 - **Validation**: Built-in configuration checker (`check`) to verify database connections and query schemas.
 
 ## Workflow: From Source to Deduplication
@@ -27,17 +27,16 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     - This process is resumable and tracks progress via `data/etl_state.json`.
 
 2.  **Train (Staging -> Model)**:
-    - Splink analyzes a sample of the staging data (e.g., 50k records).
-    - Using Expectation-Maximization (EM), it learns probabilistic weights for matching fields like Name, DOB, and Address.
-    - The learned model parameters are saved to `data/splink_model.json`.
+    - Splink analyzes a sample of staging data (e.g., 50k–200k records).
+    - It estimates `u` probabilities, prior match probability (`probability_two_random_records_match`), and then trains `m` parameters via EM.
+    - The trained model is saved to `data/splink_model.json`.
 
 3.  **Deduplicate (Staging + Model -> Clusters)**:
-    - The `run` command identifies new records in `staging_identitas` (where `PROCESSED_AT` is NULL).
-    - It loads the full dataset into memory (or chunks via `--limit`).
-    - Using the trained model, it compares records to find duplicates.
-    - Linked records are grouped into clusters.
-    - Each cluster is assigned a unique `CIF_NUMBER`.
-    - Results are saved to `processed_clusters` in DuckDB.
+    - The `run` command reads only new rows (`PROCESSED_AT IS NULL`) in batches (`--batch-size`).
+    - For each batch, it performs **new-vs-all** matching using the trained model.
+    - Pairs above threshold are converted into connected components for CIF assignment.
+    - Existing CIFs are reused when available; if a new batch bridges multiple old CIFs, CIFs are merged.
+    - Batch results are upserted into `processed_clusters`, and only that batch is marked processed.
 
 4.  **Result (Clusters -> Source)**:
     - You can query `processed_clusters` to get the mapping of `NOMOR_INDUK` to `CIF_NUMBER`.
@@ -116,27 +115,46 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     This will generate plots and a summary report in the `analysis_output/` directory.
 
 7.  **Train Deduplication Model**:
-    Train the Splink model on a sample of extracted data (e.g., 50k records):
+    Train the Splink model on a sample of extracted data:
     ```bash
     uv run dedupe deduplicate train --sample-size 50000
     ```
-    This saves the model settings to `data/splink_model.json`.
 
-8.  **Run Deduplication**:
-    Process all new/unprocessed records:
+    Recommended for larger datasets (e.g., 3M):
+    ```bash
+    uv run dedupe deduplicate train \
+      --sample-size 200000 \
+      --u-max-pairs 5000000 \
+      --deterministic-recall 0.7
+    ```
+
+    This saves model settings to `data/splink_model.json`.
+
+8.  **Run Deduplication (Incremental)**:
+    Process all new/unprocessed records with default batch processing:
     ```bash
     uv run dedupe deduplicate run
     ```
-    
-    Process in small batches (e.g., 10k records) to manage memory:
+
+    Controlled rollout example:
     ```bash
-    uv run dedupe deduplicate run --limit 10000
+    uv run dedupe deduplicate run \
+      --batch-size 50000 \
+      --limit 200000 \
+      --threshold 0.9 \
+      --max-pairs-per-batch 3000000
     ```
-    This will:
-    - Identify new records in DuckDB (respecting the limit).
-    - Link them against the full dataset (including previously processed records).
-    - Assign unique `CIF_NUMBER` to linked clusters.
-    - Update `PROCESSED_AT` timestamps for the processed batch.
+
+    Notes:
+    - `--batch-size` = records processed per loop/batch.
+    - `--limit` = total records cap for this command run.
+    - `--max-pairs-per-batch` = safety guard to stop a batch if candidate edges are too high.
+
+    This flow will:
+    - Pull unprocessed records from DuckDB in batches.
+    - Match each batch against all records (new-vs-all).
+    - Resolve CIF assignments and merge CIFs when bridging occurs.
+    - Mark only processed batch rows with `PROCESSED_AT`.
 
 ## Configuration
 
