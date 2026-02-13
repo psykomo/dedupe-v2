@@ -1,0 +1,32 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.env
+
+# Project Data & Artifacts
+data/
+analysis_output/
+*.duckdb
+*.db
+*.sqlite
+
+# Logs
+*.log
+etl.log
+dedupe.log
+
+# Configuration (contains credentials)
+config.yml
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+.DS_Store

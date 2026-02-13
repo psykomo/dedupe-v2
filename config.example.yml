@@ -1,0 +1,8 @@
+# Database Configuration
+database:
+  url: "mysql+pymysql://root:root@127.0.0.1:3306/sdp_pusat"
+
+# Synthetic Data Seeding
+seeding:
+  default_batch_size: 1000
+  default_duplicates: 0.05

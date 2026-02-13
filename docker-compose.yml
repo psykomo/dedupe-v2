@@ -1,0 +1,15 @@
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sdp_pusat
+    ports:
+      - "3310:3306"
+    volumes:
+      - ./database/init:/docker-entrypoint-initdb.d
+      - mariadb_data:/var/lib/mysql
+    command: --innodb-strict-mode=OFF --innodb-default-row-format=DYNAMIC
+
+volumes:
+  mariadb_data:
