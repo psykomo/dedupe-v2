@@ -5,6 +5,7 @@ from dedupe_gemini.config import load_config
 from dedupe_gemini.eda import app as eda_app
 from dedupe_gemini.etl import app as etl_app
 from dedupe_gemini.deduplication import app as dedupe_app
+from dedupe_gemini.check import app as check_app
 
 app = typer.Typer()
 
@@ -61,6 +62,7 @@ def config():
 app.add_typer(eda_app, name="eda")
 app.add_typer(etl_app, name="etl")
 app.add_typer(dedupe_app, name="deduplicate")
+app.add_typer(check_app, name="check")
 
 if __name__ == "__main__":
     app()

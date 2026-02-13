@@ -15,6 +15,7 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     - **Training**: Unsupervised model training (EM algorithm) on your data.
     - **Incremental Run**: Processes new records against the full dataset with optional batch limits.
     - **Entity Resolution**: Generates unique CIF Numbers for linked clusters.
+- **Validation**: Built-in configuration checker (`check`) to verify database connections and query schemas.
 
 ## Workflow: From Source to Deduplication
 
@@ -70,8 +71,14 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     uv run dedupe seed --count 3000000 --batch-size 5000
     ```
 
-4.  **Extract & Normalize (ETL)**:
-    Extract ALL data from MariaDB to DuckDB (local staging):
+4.  **Validate Configuration**:
+    Check if your `config.yml` query matches the database schema:
+    ```bash
+    uv run dedupe check validate
+    ```
+
+5.  **Extract & Normalize (ETL)**:
+    Extract data from MariaDB to DuckDB (local staging):
     ```bash
     uv run dedupe etl extract
     ```
@@ -96,7 +103,7 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     uv run dedupe etl extract --no-resume
     ```
 
-5.  **Analyze Data (EDA)**:
+6.  **Analyze Data (EDA)**:
     Run an exploratory analysis on a random sample of 5000 records from the **source database**:
     ```bash
     uv run dedupe eda analyze --sample-size 5000
@@ -108,14 +115,14 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     ```
     This will generate plots and a summary report in the `analysis_output/` directory.
 
-6.  **Train Deduplication Model**:
+7.  **Train Deduplication Model**:
     Train the Splink model on a sample of extracted data (e.g., 50k records):
     ```bash
     uv run dedupe deduplicate train --sample-size 50000
     ```
     This saves the model settings to `data/splink_model.json`.
 
-7.  **Run Deduplication**:
+8.  **Run Deduplication**:
     Process all new/unprocessed records:
     ```bash
     uv run dedupe deduplicate run
@@ -172,6 +179,7 @@ etl:
     - `etl.py`: ETL pipeline (Extract, Transform, Load)
     - `eda.py`: Exploratory Data Analysis module
     - `deduplication.py`: Splink deduplication logic
+    - `check.py`: Configuration validation
     - `db.py`: Database connection handling
     - `config.py`: Configuration loader
 - `data/`: Local data storage (DuckDB, state files, models)
