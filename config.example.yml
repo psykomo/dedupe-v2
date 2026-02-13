@@ -6,3 +6,29 @@ database:
 seeding:
   default_batch_size: 1000
   default_duplicates: 0.05
+
+# ETL Configuration (Custom Query)
+# etl:
+#   query: |
+#     SELECT 
+#       it.NOMOR_INDUK,
+#       it.NAMA_LENGKAP,
+#       it.NIK,
+#       it.TANGGAL_LAHIR,
+#       it.ID_JENIS_KELAMIN,
+#       it.ALAMAT,
+#       p.ID_UPT,
+#       it.NM_AYAH,
+#       it.NM_IBU
+#     FROM identitas it
+#     LEFT JOIN cif_mapping cm ON it.NOMOR_INDUK = cm.NOMOR_INDUK
+#     LEFT JOIN perkara p ON p.NOMOR_INDUK = it.NOMOR_INDUK
+#     WHERE cm.NOMOR_INDUK IS NULL
+#       AND p.ID_PERKARA IS NOT NULL
+#       AND p.ID_UPT IS NOT NULL
+#       AND it.NAMA_LENGKAP <> ''
+#       AND it.NAMA_LENGKAP NOT LIKE 'NAMA WBP%'
+#       AND it.NOMOR_INDUK NOT LIKE '11f066%'
+#       AND it.NOMOR_INDUK > :last_id
+#     ORDER BY it.NOMOR_INDUK ASC
+#     LIMIT :limit

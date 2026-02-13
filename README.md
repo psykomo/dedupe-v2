@@ -7,7 +7,10 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
 - **Database Management**: Docker Compose setup for MariaDB with the `sdp_pusat` schema.
 - **Data Seeding**: Powerful synthetic data generator using Faker (Indonesian locale) to create realistic inmate records with controlled duplication rates for testing.
 - **EDA Tools**: Built-in Exploratory Data Analysis module to inspect data quality and duplicate rates. Supports analyzing both raw MariaDB data and cleaned DuckDB staging data.
-- **ETL Pipeline**: Robust extractor that normalizes data and loads it into a local DuckDB instance for efficient processing. Supports resumable extraction, UPT filtering, and data cleaning (names, parent names, addresses).
+- **ETL Pipeline**: Robust extractor that normalizes data and loads it into a local DuckDB instance for efficient processing.
+    - Supports resumable extraction.
+    - Supports UPT filtering.
+    - Supports **Custom SQL Queries** via `config.yml` (for complex JOINs and filters).
 - **Deduplication**: Record linkage and deduplication using Splink.
     - **Training**: Unsupervised model training (EM algorithm) on your data.
     - **Incremental Run**: Processes new records against the full dataset with optional batch limits.
@@ -94,15 +97,36 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
 
 ## Configuration
 
-You can configure database connections and default settings in `config.yml`:
+You can configure database connections and default settings in `config.yml`.
+
+### Custom ETL Query
+To use complex JOINs or filters during extraction, define a custom query in `config.yml`. The query **must** return the required columns (`NOMOR_INDUK`, `NAMA_LENGKAP`, etc.) and include placeholders for `:last_id` and `:limit`.
 
 ```yaml
-database:
-  url: "mysql+pymysql://root:root@127.0.0.1:3306/sdp_pusat"
-
-seeding:
-  default_batch_size: 1000
-  default_duplicates: 0.05
+etl:
+  query: |
+    SELECT 
+      it.NOMOR_INDUK,
+      it.NAMA_LENGKAP,
+      it.NIK,
+      it.TANGGAL_LAHIR,
+      it.ID_JENIS_KELAMIN,
+      it.ALAMAT,
+      p.ID_UPT,
+      it.NM_AYAH,
+      it.NM_IBU
+    FROM identitas it
+    LEFT JOIN cif_mapping cm ON it.NOMOR_INDUK = cm.NOMOR_INDUK
+    LEFT JOIN perkara p ON p.NOMOR_INDUK = it.NOMOR_INDUK
+    WHERE cm.NOMOR_INDUK IS NULL
+      AND p.ID_PERKARA IS NOT NULL
+      AND p.ID_UPT IS NOT NULL
+      AND it.NAMA_LENGKAP <> ''
+      AND it.NAMA_LENGKAP NOT LIKE 'NAMA WBP%'
+      AND it.NOMOR_INDUK NOT LIKE '11f066%'
+      AND it.NOMOR_INDUK > :last_id
+    ORDER BY it.NOMOR_INDUK ASC
+    LIMIT :limit
 ```
 
 ## Project Structure

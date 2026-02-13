@@ -168,6 +168,17 @@ def extract(
         base_query += " AND " + " AND ".join(where_clauses)
         
     base_query += " ORDER BY NOMOR_INDUK ASC LIMIT :limit"
+
+    # Check for custom query in config
+    config = load_config()
+    custom_query = config.get("etl", {}).get("query")
+    if custom_query:
+        logger.info("Using custom ETL query from config")
+        # Ensure placeholders exist? Or trust user.
+        # Simple check:
+        if ":last_id" not in custom_query or ":limit" not in custom_query:
+            logger.warning("Custom query missing :last_id or :limit placeholders. This might cause issues.")
+        base_query = custom_query
     
     total_processed = 0
     
