@@ -329,6 +329,30 @@ def seed_command(count: int = 1000, duplicates: float = 0.0, batch_size: int = 1
         print("Make sure Docker is running: docker-compose up -d")
         return
 
+    # Safety Check: Prevent accidental seeding of production DB
+    db_url = str(engine.url)
+    is_safe = False
+    safe_hosts = ["localhost", "127.0.0.1", "db", "test", "0.0.0.0"]
+    
+    # Extract host from URL
+    # db_url format: dialect+driver://user:pass@host:port/db
+    if "@" in db_url:
+        host = db_url.split("@")[1].split(":")[0]
+    else:
+        # SQLite or similar
+        host = "localhost"
+        
+    if host in safe_hosts:
+        is_safe = True
+        
+    if not is_safe:
+        # Check if user explicitly allowed it via config or env var?
+        # Requirement: ABORT IMMEDIATELY.
+        typer.secho(f"DANGER: Seeding is only allowed on local databases ({safe_hosts}).", fg=typer.colors.RED, bold=True)
+        typer.secho(f"Current Host: {host}", fg=typer.colors.RED)
+        typer.secho("Aborting operation to protect production data.", fg=typer.colors.RED, bold=True)
+        raise typer.Abort()
+
     # Check and create table if needed
     ensure_table_exists(engine)
 
