@@ -8,7 +8,7 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
 - **Data Seeding**: Powerful synthetic data generator using Faker (Indonesian locale) to create realistic inmate records with controlled duplication rates for testing.
 - **EDA Tools**: Built-in Exploratory Data Analysis module to inspect data quality and duplicate rates. Supports analyzing both raw MariaDB data and cleaned DuckDB staging data.
 - **ETL Pipeline**: Robust extractor that normalizes data and loads it into a local DuckDB instance for efficient processing.
-    - Supports resumable extraction.
+    - Supports resumable extraction (tracks last processed ID).
     - Supports UPT filtering.
     - Supports **Custom SQL Queries** via `config.yml` (for complex JOINs and filters).
 - **Deduplication**: Record linkage and deduplication using Splink.
@@ -76,14 +76,19 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     uv run dedupe etl extract
     ```
     
+    Resume from last processed record (default behavior):
+    ```bash
+    uv run dedupe etl extract --resume
+    ```
+    
+    **Restart from scratch** (ignores saved state and rescans from ID 0):
+    ```bash
+    uv run dedupe etl extract --no-resume
+    ```
+    
     Process specific UPTs only:
     ```bash
     uv run dedupe etl extract --upts "001,002"
-    ```
-    
-    Resume from last processed record (default):
-    ```bash
-    uv run dedupe etl extract --resume
     ```
 
 5.  **Analyze Data (EDA)**:
