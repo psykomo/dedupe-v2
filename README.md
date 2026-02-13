@@ -71,9 +71,19 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     ```
 
 4.  **Extract & Normalize (ETL)**:
-    Extract data from MariaDB to DuckDB (local staging):
+    Extract ALL data from MariaDB to DuckDB (local staging):
     ```bash
     uv run dedupe etl extract
+    ```
+    
+    or Extract only the next 1000 records
+    ```bash
+    uv run dedupe etl extract --limit 1000
+    ```
+    
+    or Process specific UPTs only:
+    ```bash
+    uv run dedupe etl extract --upts "001,002"
     ```
     
     Resume from last processed record (default behavior):
@@ -84,11 +94,6 @@ A Python CLI tool for deduplicating inmate records using Splink and Google Gemin
     **Restart from scratch** (ignores saved state and rescans from ID 0):
     ```bash
     uv run dedupe etl extract --no-resume
-    ```
-    
-    Process specific UPTs only:
-    ```bash
-    uv run dedupe etl extract --upts "001,002"
     ```
 
 5.  **Analyze Data (EDA)**:
